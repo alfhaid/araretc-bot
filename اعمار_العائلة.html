@@ -26,6 +26,31 @@
     margin-bottom: 22px;
   }
 
+  .toggle-form-btn {
+    width: 100%;
+    background: #18282A;
+    border: 1px solid #234142;
+    color: #2DD4A7;
+    padding: 13px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .toggle-form-btn:hover { background: #1d3133; }
+  #toggleFormIcon {
+    font-size: 18px;
+    font-weight: 800;
+    display: inline-block;
+    width: 20px;
+  }
+
   .add-form {
     background: #18282A;
     border: 1px solid #234142;
@@ -128,7 +153,7 @@
   .card .diff-older { color: #2DD4A7; }
   .card .diff-younger { color: #E08A6B; }
   .card .age {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 800;
     color: #2DD4A7;
     text-align: left;
@@ -136,10 +161,24 @@
     font-feature-settings: normal;
   }
   .card .age small { font-size: 12px; color: #9fb8b9; display:block; font-weight:400; }
+  .age-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .bday-badge {
+    font-size: 11px;
+    color: #0F1A1A;
+    background: #E8B84B;
+    padding: 2px 7px;
+    border-radius: 7px;
+    font-weight: 800;
+    margin-top: 6px;
+  }
   .delete-btn {
     background: none;
     border: none;
-    color: #E08A6B;
+    color: #233534;
     font-size: 18px;
     cursor: pointer;
     margin-right: 12px;
@@ -153,7 +192,11 @@
 <div class="container">
   <h1>أعمار العائلة</h1>
 
-  <div class="add-form">
+  <button class="toggle-form-btn" id="toggleFormBtn" onclick="toggleAddForm()">
+    <span id="toggleFormIcon">+</span> إضافة عضو جديد
+  </button>
+
+  <div class="add-form" id="addFormBox" style="display:none;">
     <div class="calendar-toggle">
       <button id="btnHijri" class="active" onclick="setCalendar('hijri')">هجري</button>
       <button id="btnGregorian" onclick="setCalendar('gregorian')">ميلادي</button>
@@ -286,6 +329,34 @@
     return calcHijriAge(birthH);
   }
 
+  // عدد الأيام المتبقية على عيد الميلاد الهجري القادم (بالتقويم الهجري)
+  // يرجع null إذا أكثر من 30 يوم (لا يُعرض)
+  function daysUntilNextHijriBirthday(gregISO) {
+    const [gy, gm, gd] = gregISO.split('-').map(Number);
+    const birthH = gregorianToHijri(gy, gm, gd);
+    const todayH = todayHijri();
+
+    let nextBirthdayJD = hijriToJD(todayH.year, birthH.month, birthH.day);
+    const todayJD = hijriToJD(todayH.year, todayH.month, todayH.day);
+
+    if (nextBirthdayJD < todayJD) {
+      nextBirthdayJD = hijriToJD(todayH.year + 1, birthH.month, birthH.day);
+    }
+
+    const daysLeft = Math.round(nextBirthdayJD - todayJD);
+    return daysLeft <= 30 ? daysLeft : null;
+  }
+
+  // ===== طي/فتح منطقة الإضافة =====
+
+  function toggleAddForm() {
+    const box = document.getElementById('addFormBox');
+    const icon = document.getElementById('toggleFormIcon');
+    const isHidden = box.style.display === 'none';
+    box.style.display = isHidden ? 'block' : 'none';
+    icon.textContent = isHidden ? '−' : '+';
+  }
+
   // ===== واجهة اختيار التقويم =====
 
   function setCalendar(cal) {
@@ -329,9 +400,8 @@
     const ref = new Date(ry, rm - 1, rd);
     const target = new Date(ty, tm - 1, td);
 
-    // الفرق: target بالنسبة لـ ref. إذا target أصغر (تاريخ ميلاد لاحق) فهو أصغر سناً.
     let years, months;
-    const refIsOlder = ref <= target; // ref تاريخ ميلاده أبكر أو نفس التاريخ => ref أكبر سناً
+    const refIsOlder = ref <= target;
 
     const a = refIsOlder ? ref : target;
     const b = refIsOlder ? target : ref;
@@ -373,6 +443,8 @@
 
       const ageDisplay = `${birthH.year}هـ : ${ageH.years} سنة`;
       const ageSubNote = `${gy}م : ${ageG.years} سنة`;
+      const daysLeft = daysUntilNextHijriBirthday(m.gregISO);
+      const bdayBadge = daysLeft !== null ? `<span class="bday-badge">🎂 ${daysLeft} يوم</span>` : '';
 
       let smallNote;
 
@@ -408,7 +480,10 @@
             <span class="dob">${smallNote}</span>
           </div>
         </div>
-        <div class="age">${ageDisplay}<small>${ageSubNote}</small></div>
+        <div class="age-col">
+          <div class="age">${ageDisplay}<small>${ageSubNote}</small></div>
+          ${bdayBadge}
+        </div>
       `;
       list.appendChild(card);
     });
@@ -428,7 +503,7 @@
 
   function checkPin() {
     const entered = prompt('أدخل الرمز السري للتعديل:');
-    if (entered === null) return false; // ضغط إلغاء
+    if (entered === null) return false;
     if (entered !== PIN_CODE) {
       alert('رمز غير صحيح');
       return false;
