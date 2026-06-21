@@ -441,8 +441,8 @@
       const ageH = calcHijriAgeFromGregISO(m.gregISO);
       const birthH = gregorianToHijri(gy, gm, gd);
 
-      const ageDisplay = `${birthH.year}هـ : ${ageH.years} سنة`;
-      const ageSubNote = `${gy}م : ${ageG.years} سنة`;
+      const ageDisplay = `${gy}م : ${ageG.years} سنة`;
+      const ageSubNote = `${birthH.year}هـ : ${ageH.years} سنة`;
       const daysLeft = daysUntilNextHijriBirthday(m.gregISO);
       const bdayBadge = daysLeft !== null ? `<span class="bday-badge">🎂 ${daysLeft} يوم</span>` : '';
 
