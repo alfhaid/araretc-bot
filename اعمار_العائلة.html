@@ -181,12 +181,12 @@
   .deceased-name { color: #9fb8b9 !important; }
   .deceased-note { font-size: 13px; color: #6b8d8e; margin-top: 4px; }
   .deceased-age {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: 24px;
+    font-weight: 800;
     color: #6b8d8e;
     text-align: left;
   }
-  .deceased-age small { font-size: 11px; color: #4d6566; display:block; font-weight:400; margin-top:2px; }
+  .deceased-age small { font-size: 12px; color: #4d6566; display:block; font-weight:400; }
   .deceased-checkbox-row {
     display: flex;
     align-items: center;
@@ -450,7 +450,7 @@
     return {
       ageAtDeath: ageAtDeathY,
       yearsSince: yearsSince,
-      ageIfAlive: ageIfAliveY
+      ageIfAliveHijri: ageIfAliveY
     };
   }
 
@@ -592,6 +592,8 @@
 
       if (m.isDeceased && m.deathDate) {
         const info = calcDeceasedInfo(birthHijriExact, m.deathDate);
+        const deceasedAgeMain = `${gy}م : ${ageG.years} سنة`;
+        const deceasedAgeSub = `${hijriYearDisplay}هـ : ${info.ageIfAliveHijri} سنة`;
         card.className = 'card';
         card.innerHTML = `
           <div class="row">
@@ -603,7 +605,7 @@
               <span class="deceased-note">توفي عن عمر ${info.ageAtDeath} سنة، منذ ${info.yearsSince} سنة</span>
             </div>
           </div>
-          <div class="deceased-age">لو كان حياً: ${info.ageIfAlive} سنة<small>تقدير هجري</small></div>
+          <div class="deceased-age">${deceasedAgeMain}<small>${deceasedAgeSub}</small></div>
         `;
         list.appendChild(card);
         return;
