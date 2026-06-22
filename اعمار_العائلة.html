@@ -153,7 +153,7 @@
   .card .diff-older { color: #2DD4A7; }
   .card .diff-younger { color: #E08A6B; }
   .card .age {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 800;
     color: #2DD4A7;
     text-align: left;
@@ -249,7 +249,7 @@
     jd = Math.floor(jd) + 0.5;
     let year = Math.floor((30 * (jd - 1948440) + 10646) / 10631);
     let month = Math.min(12, Math.ceil((jd - (29 + hijriToJD(year, 1, 1))) / 29.5) + 1);
-    let day = jd - hijriToJD(year, month, 1) + 1;
+    let day = Math.round(jd - hijriToJD(year, month, 1) + 1);
     return { year, month, day };
   }
 
