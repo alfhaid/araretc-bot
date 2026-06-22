@@ -177,6 +177,59 @@
     font-weight: 800;
     margin-top: 6px;
   }
+
+  .deceased-name { color: #9fb8b9 !important; }
+  .deceased-note { font-size: 13px; color: #6b8d8e; margin-top: 4px; }
+  .deceased-age {
+    font-size: 20px;
+    font-weight: 700;
+    color: #6b8d8e;
+    text-align: left;
+  }
+  .deceased-age small { font-size: 11px; color: #4d6566; display:block; font-weight:400; margin-top:2px; }
+  .deceased-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    color: #9fb8b9;
+    font-size: 14px;
+  }
+  .deceased-checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #E08A6B;
+  }
+
+  .card.has-progress { flex-direction: column; align-items: stretch; }
+  .card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+  .bday-progress-wrap { margin-top: 10px; width: 100%; }
+  .bday-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #E8B84B;
+    margin-bottom: 3px;
+    font-weight: 700;
+  }
+  .bday-progress-bar {
+    height: 6px;
+    background: #0F1A1A;
+    border-radius: 4px;
+    overflow: hidden;
+    width: 100%;
+  }
+  .bday-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #E8B84B, #f0cc6f);
+    border-radius: 4px;
+  }
+
   .delete-btn {
     background: none;
     border: none;
@@ -214,6 +267,17 @@
       <input type="number" id="yearInput" placeholder="السنة" style="max-width:90px;">
     </div>
 
+    <label class="deceased-checkbox-row">
+      <input type="checkbox" id="isDeceasedInput" onchange="toggleDeathDateFields()">
+      متوفى
+    </label>
+
+    <div class="form-row" id="deathDateInputs" style="display:none;">
+      <select id="deathDayInput"></select>
+      <select id="deathMonthInput"></select>
+      <input type="number" id="deathYearInput" placeholder="سنة الوفاة (هجري)" style="max-width:140px;">
+    </div>
+
     <button class="submit-btn" onclick="addMember()">إضافة</button>
   </div>
 
@@ -227,8 +291,6 @@
 
   const hijriMonths = ['محرم','صفر','ربيع الأول','ربيع الآخر','جمادى الأولى','جمادى الآخرة','رجب','شعبان','رمضان','شوال','ذو القعدة','ذو الحجة'];
   const gregMonths = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-
-  // ===== تحويل هجري <-> ميلادي (خوارزمية Kuwaiti Algorithm - معتمدة شائعة الاستخدام) =====
 
   function hijriToGregorian(hy, hm, hd) {
     const jd = hijriToJD(hy, hm, hd);
@@ -280,8 +342,6 @@
     return gregorianToHijri(now.getFullYear(), now.getMonth() + 1, now.getDate());
   }
 
-  // ===== التخزين =====
-
   function loadMembers() {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
@@ -298,10 +358,6 @@
       alert('تعذّر حفظ البيانات. السبب الأرجح: إعدادات الخصوصية بالمتصفح تمنع التخزين المحلي على هذا الموقع. جرّب فتح الصفحة من سفاري مباشرة بدون متصفح داخل تطبيق آخر (واتساب وغيره).');
     }
   }
-
-  // كل عضو: { name, calendar: 'hijri'|'gregorian', y, m, d, gregISO } // gregISO = تاريخ ميلادي محسوب موحّد للحساب والترتيب
-
-  // ===== حساب العمر (بالميلادي دائماً، ثم نعرضه بالنظامين) =====
 
   function calcAgeFromGregorian(gy, gm, gd) {
     const dob = new Date(gy, gm - 1, gd);
@@ -333,15 +389,12 @@
     return { years, months, days };
   }
 
-  // حساب السن الهجري لأي عضو بناءً على تاريخ ميلاده الميلادي الموحّد (gregISO)
   function calcHijriAgeFromGregISO(gregISO) {
     const [gy, gm, gd] = gregISO.split('-').map(Number);
     const birthH = gregorianToHijri(gy, gm, gd);
     return calcHijriAge(birthH);
   }
 
-  // عدد الأيام المتبقية على عيد الميلاد الهجري القادم (بالتقويم الهجري)
-  // يرجع null إذا أكثر من 30 يوم (لا يُعرض)
   function daysUntilNextHijriBirthday(gregISO) {
     const [gy, gm, gd] = gregISO.split('-').map(Number);
     const birthH = gregorianToHijri(gy, gm, gd);
@@ -357,8 +410,6 @@
     const daysLeft = Math.round(nextBirthdayJD - todayJD);
     return daysLeft <= 30 ? daysLeft : null;
   }
-
-  // ===== تبديل عرض السن / التاريخ عند الضغط =====
 
   let ageViewData = [];
 
@@ -376,7 +427,32 @@
     }
   }
 
-  // ===== طي/فتح منطقة الإضافة =====
+  function calcDeceasedInfo(birthHijri, deathHijri) {
+    let ageAtDeathY = deathHijri.year - birthHijri.year;
+    let mDiff = deathHijri.month - birthHijri.month;
+    let dDiff = deathHijri.day - birthHijri.day;
+    if (dDiff < 0) { mDiff -= 1; }
+    if (mDiff < 0) { ageAtDeathY -= 1; }
+
+    const todayH = todayHijri();
+    let yearsSince = todayH.year - deathHijri.year;
+    let mDiff2 = todayH.month - deathHijri.month;
+    let dDiff2 = todayH.day - deathHijri.day;
+    if (dDiff2 < 0) { mDiff2 -= 1; }
+    if (mDiff2 < 0) { yearsSince -= 1; }
+
+    let ageIfAliveY = todayH.year - birthHijri.year;
+    let mDiff3 = todayH.month - birthHijri.month;
+    let dDiff3 = todayH.day - birthHijri.day;
+    if (dDiff3 < 0) { mDiff3 -= 1; }
+    if (mDiff3 < 0) { ageIfAliveY -= 1; }
+
+    return {
+      ageAtDeath: ageAtDeathY,
+      yearsSince: yearsSince,
+      ageIfAlive: ageIfAliveY
+    };
+  }
 
   function toggleAddForm() {
     const box = document.getElementById('addFormBox');
@@ -385,8 +461,6 @@
     box.style.display = isHidden ? 'block' : 'none';
     icon.textContent = isHidden ? '−' : '+';
   }
-
-  // ===== واجهة اختيار التقويم =====
 
   function setCalendar(cal) {
     currentCalendar = cal;
@@ -414,7 +488,30 @@
     });
   }
 
-  // ===== عرض القائمة =====
+  function toggleDeathDateFields() {
+    const checked = document.getElementById('isDeceasedInput').checked;
+    const box = document.getElementById('deathDateInputs');
+    box.style.display = checked ? 'flex' : 'none';
+    if (checked) populateDeathDateSelectors();
+  }
+
+  function populateDeathDateSelectors() {
+    const daySel = document.getElementById('deathDayInput');
+    const monthSel = document.getElementById('deathMonthInput');
+    daySel.innerHTML = '';
+    monthSel.innerHTML = '';
+
+    for (let d = 1; d <= 31; d++) {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      daySel.appendChild(opt);
+    }
+    hijriMonths.forEach((name, i) => {
+      const opt = document.createElement('option');
+      opt.value = i + 1; opt.textContent = name;
+      monthSel.appendChild(opt);
+    });
+  }
 
   function formatDateDisplay(member) {
     const months = member.calendar === 'hijri' ? hijriMonths : gregMonths;
@@ -422,7 +519,6 @@
     return `${member.d} ${months[member.m - 1]} ${member.y} ${label}`;
   }
 
-  // الفرق بالسنوات والشهور بين تاريخين ميلاديين (gregISO)، موجب = الأول أكبر
   function diffYearsMonths(refISO, targetISO) {
     const [ry, rm, rd] = refISO.split('-').map(Number);
     const [ty, tm, td] = targetISO.split('-').map(Number);
@@ -470,18 +566,15 @@
       const ageG = calcAgeFromGregorian(gy, gm, gd);
       const ageH = calcHijriAgeFromGregISO(m.gregISO);
       const birthH = gregorianToHijri(gy, gm, gd);
+      const birthHijriExact = m.calendar === 'hijri' ? { year: m.y, month: m.m, day: m.d } : birthH;
 
       const ageDisplay = `${gy}م : ${ageG.years} سنة`;
       const hijriYearDisplay = m.calendar === 'hijri' ? m.y : birthH.year;
       const ageSubNote = `${hijriYearDisplay}هـ : ${ageH.years} سنة`;
       const dateGregDisplay = `${gd}/${gm}/${gy}م`;
-      // لو العضو أُدخل هجري أصلاً، نعرض التاريخ الهجري كما أدخله المستخدم بالضبط (بدون تحويل ذهاب ورجوع)
-      // لو أُدخل ميلادي، نعرض الهجري المحسوب (تحويل اتجاه واحد فقط)
       const dateHijriDisplay = m.calendar === 'hijri'
         ? `${m.d}/${m.m}/${m.y}هـ`
         : `${birthH.day}/${birthH.month}/${birthH.year}هـ`;
-      const daysLeft = daysUntilNextHijriBirthday(m.gregISO);
-      const bdayBadge = daysLeft !== null ? `<span class="bday-badge">🎂 ${daysLeft} يوم</span>` : '';
 
       ageViewData[index] = {
         age: ageDisplay,
@@ -491,8 +584,32 @@
         showing: 'age'
       };
 
-      let smallNote;
+      const meBadgeOrBtn = m.isMe
+        ? `<span class="me-badge">أنا</span>`
+        : `<button class="set-me-btn" onclick="setAsMe(${index})">أنا</button>`;
 
+      const card = document.createElement('div');
+
+      if (m.isDeceased && m.deathDate) {
+        const info = calcDeceasedInfo(birthHijriExact, m.deathDate);
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="row">
+            <button class="delete-btn" onclick="deleteMember(${index})">✕</button>
+            <div class="info">
+              <div class="name-row">
+                <span class="name deceased-name">${m.name}</span>
+              </div>
+              <span class="deceased-note">توفي عن عمر ${info.ageAtDeath} سنة، منذ ${info.yearsSince} سنة</span>
+            </div>
+          </div>
+          <div class="deceased-age">لو كان حياً: ${info.ageIfAlive} سنة<small>تقدير هجري</small></div>
+        `;
+        list.appendChild(card);
+        return;
+      }
+
+      let smallNote;
       if (m.isMe) {
         smallNote = `<span style="color:#2DD4A7;">المرجع (أنا)</span>`;
       } else if (me) {
@@ -508,27 +625,40 @@
         smallNote = `<span style="color:#6b8d8e;">حدد المرجع "أنا" لعرض الفرق</span>`;
       }
 
-      const meBadgeOrBtn = m.isMe
-        ? `<span class="me-badge">أنا</span>`
-        : `<button class="set-me-btn" onclick="setAsMe(${index})">أنا</button>`;
-
-      const card = document.createElement('div');
-      card.className = 'card';
-      card.innerHTML = `
-        <div class="row">
-          <button class="delete-btn" onclick="deleteMember(${index})">✕</button>
-          <div class="info">
-            <div class="name-row">
-              <span class="name">${m.name}</span>
-              ${meBadgeOrBtn}
+      const daysLeft = daysUntilNextHijriBirthday(m.gregISO);
+      let progressHtml = '';
+      if (daysLeft !== null) {
+        const percent = Math.round(((30 - daysLeft) / 30) * 100);
+        progressHtml = `
+          <div class="bday-progress-wrap">
+            <div class="bday-progress-label">
+              <span>🎂 باقي ${daysLeft} يوم على عيد ميلاده</span>
             </div>
-            <span class="dob">${smallNote}</span>
+            <div class="bday-progress-bar">
+              <div class="bday-progress-fill" style="width:${percent}%;"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      card.className = daysLeft !== null ? 'card has-progress' : 'card';
+      card.innerHTML = `
+        <div class="card-top-row">
+          <div class="row">
+            <button class="delete-btn" onclick="deleteMember(${index})">✕</button>
+            <div class="info">
+              <div class="name-row">
+                <span class="name">${m.name}</span>
+                ${meBadgeOrBtn}
+              </div>
+              <span class="dob">${smallNote}</span>
+            </div>
+          </div>
+          <div class="age-col">
+            <div class="age" id="age-${index}" onclick="toggleAgeView(${index})">${ageDisplay}<small>${ageSubNote}</small></div>
           </div>
         </div>
-        <div class="age-col">
-          <div class="age" id="age-${index}" onclick="toggleAgeView(${index})">${ageDisplay}<small>${ageSubNote}</small></div>
-          ${bdayBadge}
-        </div>
+        ${progressHtml}
       `;
       list.appendChild(card);
     });
@@ -542,8 +672,6 @@
     render();
   }
 
-  // ===== الرمز السري للإضافة والحذف =====
-  // غيّر هذا الرقم لأي رمز تبيه
   const PIN_CODE = 'fhd';
 
   function checkPin() {
@@ -555,8 +683,6 @@
     }
     return true;
   }
-
-  // ===== إضافة وحذف =====
 
   function addMember() {
     if (!checkPin()) return;
@@ -580,12 +706,27 @@
       gregISO = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     }
 
+    const isDeceased = document.getElementById('isDeceasedInput').checked;
+    let deathDate = null;
+    if (isDeceased) {
+      const dd = parseInt(document.getElementById('deathDayInput').value);
+      const dm = parseInt(document.getElementById('deathMonthInput').value);
+      const dy = parseInt(document.getElementById('deathYearInput').value);
+      if (!dd || !dm || !dy) {
+        alert('أدخل تاريخ الوفاة كاملاً (هجري)');
+        return;
+      }
+      deathDate = { day: dd, month: dm, year: dy };
+    }
+
     const members = loadMembers();
-    members.push({ name, calendar: currentCalendar, y, m, d, gregISO });
+    members.push({ name, calendar: currentCalendar, y, m, d, gregISO, isDeceased, deathDate });
     saveMembers(members);
 
     nameInput.value = '';
     document.getElementById('yearInput').value = '';
+    document.getElementById('isDeceasedInput').checked = false;
+    document.getElementById('deathDateInputs').style.display = 'none';
     render();
   }
 
@@ -599,7 +740,6 @@
     render();
   }
 
-  // ===== تهيئة =====
   populateDateSelectors();
   render();
 </script>
