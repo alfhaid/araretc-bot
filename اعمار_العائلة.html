@@ -153,12 +153,14 @@
   .card .diff-older { color: #2DD4A7; }
   .card .diff-younger { color: #E08A6B; }
   .card .age {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 800;
     color: #2DD4A7;
     text-align: left;
     font-variant-numeric: normal;
     font-feature-settings: normal;
+    cursor: pointer;
+    user-select: none;
   }
   .card .age small { font-size: 12px; color: #9fb8b9; display:block; font-weight:400; }
   .age-col {
@@ -281,11 +283,20 @@
   // ===== التخزين =====
 
   function loadMembers() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      alert('تعذّر الوصول لتخزين المتصفح. تأكد من فتح الصفحة من رابط https حقيقي (وليس كملف محلي مباشر) وأن إعدادات الخصوصية بالمتصفح لا تمنع التخزين.');
+      return [];
+    }
   }
   function saveMembers(members) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(members));
+    } catch (e) {
+      alert('تعذّر حفظ البيانات. السبب الأرجح: إعدادات الخصوصية بالمتصفح تمنع التخزين المحلي على هذا الموقع. جرّب فتح الصفحة من سفاري مباشرة بدون متصفح داخل تطبيق آخر (واتساب وغيره).');
+    }
   }
 
   // كل عضو: { name, calendar: 'hijri'|'gregorian', y, m, d, gregISO } // gregISO = تاريخ ميلادي محسوب موحّد للحساب والترتيب
@@ -345,6 +356,24 @@
 
     const daysLeft = Math.round(nextBirthdayJD - todayJD);
     return daysLeft <= 30 ? daysLeft : null;
+  }
+
+  // ===== تبديل عرض السن / التاريخ عند الضغط =====
+
+  let ageViewData = [];
+
+  function toggleAgeView(index) {
+    const el = document.getElementById('age-' + index);
+    if (!el || !ageViewData[index]) return;
+    const data = ageViewData[index];
+
+    if (data.showing === 'age') {
+      el.innerHTML = `${data.dateGreg}<small>${data.dateHijri}</small>`;
+      data.showing = 'date';
+    } else {
+      el.innerHTML = `${data.age}<small>${data.sub}</small>`;
+      data.showing = 'age';
+    }
   }
 
   // ===== طي/فتح منطقة الإضافة =====
@@ -434,6 +463,7 @@
     members.sort((a, b) => new Date(a.gregISO) - new Date(b.gregISO));
     const meIndex = members.findIndex(m => m.isMe);
     const me = meIndex >= 0 ? members[meIndex] : null;
+    ageViewData = [];
 
     members.forEach((m, index) => {
       const [gy, gm, gd] = m.gregISO.split('-').map(Number);
@@ -443,8 +473,18 @@
 
       const ageDisplay = `${gy}م : ${ageG.years} سنة`;
       const ageSubNote = `${birthH.year}هـ : ${ageH.years} سنة`;
+      const dateGregDisplay = `${gd}/${gm}/${gy}م`;
+      const dateHijriDisplay = `${birthH.day}/${birthH.month}/${birthH.year}هـ`;
       const daysLeft = daysUntilNextHijriBirthday(m.gregISO);
       const bdayBadge = daysLeft !== null ? `<span class="bday-badge">🎂 ${daysLeft} يوم</span>` : '';
+
+      ageViewData[index] = {
+        age: ageDisplay,
+        sub: ageSubNote,
+        dateGreg: dateGregDisplay,
+        dateHijri: dateHijriDisplay,
+        showing: 'age'
+      };
 
       let smallNote;
 
@@ -481,7 +521,7 @@
           </div>
         </div>
         <div class="age-col">
-          <div class="age">${ageDisplay}<small>${ageSubNote}</small></div>
+          <div class="age" id="age-${index}" onclick="toggleAgeView(${index})">${ageDisplay}<small>${ageSubNote}</small></div>
           ${bdayBadge}
         </div>
       `;
