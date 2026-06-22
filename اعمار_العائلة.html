@@ -472,9 +472,14 @@
       const birthH = gregorianToHijri(gy, gm, gd);
 
       const ageDisplay = `${gy}م : ${ageG.years} سنة`;
-      const ageSubNote = `${birthH.year}هـ : ${ageH.years} سنة`;
+      const hijriYearDisplay = m.calendar === 'hijri' ? m.y : birthH.year;
+      const ageSubNote = `${hijriYearDisplay}هـ : ${ageH.years} سنة`;
       const dateGregDisplay = `${gd}/${gm}/${gy}م`;
-      const dateHijriDisplay = `${birthH.day}/${birthH.month}/${birthH.year}هـ`;
+      // لو العضو أُدخل هجري أصلاً، نعرض التاريخ الهجري كما أدخله المستخدم بالضبط (بدون تحويل ذهاب ورجوع)
+      // لو أُدخل ميلادي، نعرض الهجري المحسوب (تحويل اتجاه واحد فقط)
+      const dateHijriDisplay = m.calendar === 'hijri'
+        ? `${m.d}/${m.m}/${m.y}هـ`
+        : `${birthH.day}/${birthH.month}/${birthH.year}هـ`;
       const daysLeft = daysUntilNextHijriBirthday(m.gregISO);
       const bdayBadge = daysLeft !== null ? `<span class="bday-badge">🎂 ${daysLeft} يوم</span>` : '';
 
