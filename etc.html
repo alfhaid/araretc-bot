@@ -501,18 +501,14 @@
     btn.disabled = true;
     btn.innerHTML = 'جارٍ الإرسال <span class="spinner"></span>';
 
-    const payload = {
-      name: document.getElementById('f-name').value.trim(),
-      studentId: document.getElementById('f-id').value.trim(),
-      type: document.getElementById('f-type').value,
-      description: document.getElementById('f-desc').value.trim()
-    };
+    const name = document.getElementById('f-name').value.trim();
+    const studentId = document.getElementById('f-id').value.trim();
+    const type = document.getElementById('f-type').value;
+    const description = document.getElementById('f-desc').value.trim();
+    const params = new URLSearchParams({ action: 'submit', name, studentId, type, description });
 
     try {
-      const res = await fetch(SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
+      const res = await fetch(SCRIPT_URL + '?' + params.toString());
       const json = await res.json();
       if (json.success) {
         currentTicket = json.ticket;
