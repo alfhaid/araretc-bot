@@ -190,10 +190,15 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(22,109,125,.1)
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#166d7d">02</span>
           <div>
             <div style="font-size:16.5px;font-weight:500;letter-spacing:-.01em">تتبع طلبك</div>
-            <div style="font-size:11.5px;color:#6a7875;margin-top:3px">أدخل رقم الطلب الذي وصلك عند الإرسال</div>
+            <div style="font-size:11.5px;color:#6a7875;margin-top:3px">أدخل رقمك التدريبي ورقم الطلب الذي وصلك عند الإرسال</div>
           </div>
         </div>
         <div style="padding:22px">
+          <div style="margin-bottom:10px">
+            <label for="track-sid" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">رقم المتدرب</label>
+            <input id="track-sid" placeholder="44XXXXXXX" maxlength="9" inputmode="numeric" style="width:100%;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;outline:none;transition:border-color .18s,box-shadow .18s;-webkit-appearance:none;appearance:none">
+          </div>
+          <label for="track-input" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">رقم الطلب</label>
           <div style="display:flex;gap:8px">
             <input id="track-input" placeholder="مثال: 0001" style="flex:1;min-width:0;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em;outline:none;transition:border-color .18s,box-shadow .18s">
             <button type="button" class="btn-track" onclick="trackTicket()" style="background:#12545f;border:none;border-radius:8px;padding:13px 22px;color:#fdfdfb;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .18s">بحث</button>
@@ -204,7 +209,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(22,109,125,.1)
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
               <div>
                 <div id="r-num" style="font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:500;color:#0f1a18;letter-spacing:.08em"></div>
-                <div id="r-title" style="font-size:13px;color:#5f6d68;margin-top:4px"></div>
+                <div id="r-name" style="font-size:13px;font-weight:500;color:#16211f;margin-top:4px"></div>
+                <div id="r-title" style="font-size:12.5px;color:#5f6d68;margin-top:2px"></div>
               </div>
               <div class="status-pill" id="r-status"></div>
             </div>
@@ -332,6 +338,8 @@ function resetForm() {
 
 async function trackTicket() {
   const num = document.getElementById('track-input').value.trim().toUpperCase();
+  const sidEl = document.getElementById('track-sid');
+  const sid = sidEl ? toEnglishDigits(sidEl.value.trim()).replace(/\D/g, '') : '';
   const errEl = document.getElementById('track-err');
   const resEl = document.getElementById('ticket-result');
   errEl.style.display = 'none'; resEl.style.display = 'none';
@@ -339,10 +347,12 @@ async function trackTicket() {
   const btn = document.querySelector('.btn-track');
   btn.textContent = '...'; btn.disabled = true;
   try {
-    const res = await fetch(SCRIPT_URL + '?ticket=' + encodeURIComponent(num));
+    const res = await fetch(SCRIPT_URL + '?ticket=' + encodeURIComponent(num) + '&studentId=' + encodeURIComponent(sid));
     const json = await res.json();
-    if (!json.success) { errEl.style.display = 'block'; btn.textContent = 'بحث'; btn.disabled = false; return; }
+    if (!json.success) { errEl.textContent = 'لم نجد طلباً بهذا الرقم لهذا المتدرب — تأكد من الرقمين'; errEl.style.display = 'block'; btn.textContent = 'بحث'; btn.disabled = false; return; }
     document.getElementById('r-num').textContent = json.ticket;
+    const nameEl = document.getElementById('r-name');
+    if (nameEl) nameEl.textContent = json.name || '';
     document.getElementById('r-title').textContent = json.type || '—';
     document.getElementById('r-date').textContent = json.date || '—';
     document.getElementById('r-time').textContent = json.time || '—';
@@ -474,11 +484,17 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
   async function loadStatus(num) {
     if (!num) return;
     const note = $('st-note'), btn = $('st-refresh');
+    const sid = readSid();
     note.style.display = 'none';
+    if (!sid) {
+      note.textContent = 'لمتابعة الطلب افتح تبويب «تتبع طلب» وأدخل رقمك التدريبي مع رقم الطلب.';
+      note.style.display = 'block';
+      return;
+    }
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> جارٍ التحديث';
     try {
-      const res = await fetch(SCRIPT_URL + '?ticket=' + encodeURIComponent(num));
+      const res = await fetch(SCRIPT_URL + '?ticket=' + encodeURIComponent(num) + '&studentId=' + encodeURIComponent(sid));
       const json = await res.json();
       if (!json.success) {
         tickets = tickets.filter(t => t !== num);
@@ -527,6 +543,18 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
       const digits = (typeof toEnglishDigits === 'function' ? toEnglishDigits(raw) : raw).replace(/\D/g, '');
       if (digits && !/[a-z]/i.test(raw)) el.value = 'ETC-' + digits.padStart(4, '0');
     }
+    const sidEl = $('track-sid');
+    if (sidEl) {
+      const sid = (typeof toEnglishDigits === 'function' ? toEnglishDigits(sidEl.value.trim()) : sidEl.value.trim()).replace(/\D/g, '');
+      if (!/^\d{9}$/.test(sid) || sid.indexOf('44') !== 0) {
+        const errEl = $('track-err');
+        errEl.textContent = 'أدخل رقم المتدرب — ٩ أرقام تبدأ بـ 44';
+        errEl.style.display = 'block';
+        $('ticket-result').style.display = 'none';
+        return;
+      }
+      writeSid(sid);
+    }
     await origTrack();
     const d = $('r-date'), t = $('r-time'), n = $('r-num');
     if (d) d.textContent = fmtDate(d.textContent);
@@ -537,6 +565,8 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
   const origSubmit = window.submitForm;
   window.submitForm = async function () {
     const chosenType = ($('f-type') || {}).value || '';
+    const sidRaw = ($('f-id') || {}).value || '';
+    writeSid((typeof toEnglishDigits === 'function' ? toEnglishDigits(sidRaw.trim()) : sidRaw.trim()).replace(/\D/g, ''));
     await origSubmit();
     let num = '';
     try { num = (currentTicket || '').trim(); } catch (e) {}
@@ -583,6 +613,10 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
   paintOffHours();
   setInterval(paintOffHours, 60000);
 
+  const SIDKEY = 'etc_sid';
+  function readSid() { try { return localStorage.getItem(SIDKEY) || ''; } catch (e) { return ''; } }
+  function writeSid(v) { try { if (v) localStorage.setItem(SIDKEY, v); } catch (e) {} }
+
   const TKEY = 'etc_ticket_meta';
   function readMeta() { try { return JSON.parse(localStorage.getItem(TKEY) || '{}') || {}; } catch (e) { return {}; } }
   function writeMeta(m) { try { localStorage.setItem(TKEY, JSON.stringify(m)); } catch (e) {} }
@@ -617,6 +651,16 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
       $('err-id').style.display = wrong ? 'block' : 'none';
       id.style.borderColor = !d.length ? (hadJunk ? bad : base) : valid ? ok : wrong ? bad : base;
     });
+    const tsid = $('track-sid');
+    if (tsid) {
+      tsid.value = readSid();
+      tsid.addEventListener('input', () => {
+        const cleaned = tsid.value.replace(/[^0-9٠-٩]/g, '');
+        if (cleaned !== tsid.value) tsid.value = cleaned;
+        const d = digits(cleaned);
+        tsid.style.borderColor = !d.length ? base : (d.length === 9 && d.indexOf('44') === 0) ? ok : base;
+      });
+    }
     if (type) type.addEventListener('change', () => {
       $('err-type').style.display = 'none';
       type.style.borderColor = type.value ? ok : base;
