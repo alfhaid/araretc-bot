@@ -97,6 +97,7 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(22,109,125,.1)
           </div>
         </div>
         <div style="padding:22px;display:flex;flex-direction:column;gap:16px">
+          <div id="form-note-deleted" style="display:none;background:#fcf7ea;border:1px solid #e8dab6;border-radius:10px;padding:12px 14px;font-size:12px;color:#7d6428;line-height:1.8"></div>
           <div>
             <label for="f-name" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">الاسم الكامل</label>
             <input type="text" id="f-name" placeholder="أدخل اسمك الكامل" style="width:100%;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;outline:none;transition:border-color .18s,box-shadow .18s;-webkit-appearance:none;appearance:none">
@@ -134,7 +135,8 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(22,109,125,.1)
           </div>
           <div>
             <label for="f-desc" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">تفاصيل المشكلة</label>
-            <textarea id="f-desc" placeholder="اشرح مشكلتك باختصار..." style="width:100%;height:98px;resize:none;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;line-height:1.8;outline:none;transition:border-color .18s,box-shadow .18s"></textarea>
+            <textarea id="f-desc" placeholder="اشرح مشكلتك باختصار..." data-required="1" style="width:100%;height:98px;resize:none;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;line-height:1.8;outline:none;transition:border-color .18s,box-shadow .18s"></textarea>
+            <div id="err-desc" style="display:none;font-size:11.5px;color:#c0483f;margin-top:6px">اشرح مشكلتك في سطر واحد على الأقل</div>
           </div>
           <div id="off-hours" style="display:none;align-items:flex-start;gap:10px;background:#f7f8f5;border:1px solid #e2e4de;border-radius:9px;padding:12px 14px;font-size:11.5px;color:#5f6d68;line-height:1.8">
             <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#166d7d;flex-shrink:0">i</span>
@@ -511,6 +513,12 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
         }
         renderList();
         $('ticket-display').textContent = '—';
+        // لا طلبات باقية: أعِد المستخدم للنموذج بدل صفحة نجاح فارغة
+        $('form-card').style.display = 'block';
+        $('success-box').style.display = 'none';
+        const fc = $('form-note-deleted');
+        if (fc) { fc.textContent = 'لم نعد نجد الطلب ' + short(num) + ' — قد يكون حُذف. ارفع طلباً جديداً.'; fc.style.display = 'block'; }
+        note.style.display = 'none';
       } else {
         render(json);
       }
@@ -629,6 +637,28 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     a.href = 'https://wa.me/?text=' + encodeURIComponent(msg);
   }
 
+  // تفاصيل المشكلة إلزامية (عشرة أحرف على الأقل)
+  const MIN_DESC = 10;
+  const origValidate = window.validate;
+  window.validate = function () {
+    let okAll = origValidate();
+    const desc = $('f-desc');
+    const err = $('err-desc');
+    if (desc && err) {
+      const v = desc.value.trim();
+      if (v.length < MIN_DESC) {
+        err.textContent = v.length ? 'وضّح مشكلتك أكثر — عشرة أحرف على الأقل' : 'تفاصيل المشكلة مطلوبة';
+        err.style.display = 'block';
+        desc.style.borderColor = '#c0483f';
+        okAll = false;
+      } else {
+        err.style.display = 'none';
+        desc.style.borderColor = '#2c7a5c';
+      }
+    }
+    return okAll;
+  };
+
   // تحقق فوري أثناء الكتابة (لا يغيّر شروط validate الأصلية)
   (function liveValidate() {
     const name = $('f-name'), id = $('f-id'), type = $('f-type');
@@ -650,6 +680,12 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
       $('err-id').textContent = hadJunk ? 'رقم المتدرب أرقام فقط — ٩ أرقام تبدأ بـ 44' : 'رقم المتدرب يجب أن يكون 9 أرقام ويبدأ بـ 44';
       $('err-id').style.display = wrong ? 'block' : 'none';
       id.style.borderColor = !d.length ? (hadJunk ? bad : base) : valid ? ok : wrong ? bad : base;
+    });
+    const descEl = $('f-desc');
+    if (descEl) descEl.addEventListener('input', () => {
+      const v = descEl.value.trim();
+      if (v.length >= MIN_DESC) { $('err-desc').style.display = 'none'; descEl.style.borderColor = ok; }
+      else descEl.style.borderColor = base;
     });
     const tsid = $('track-sid');
     if (tsid) {
