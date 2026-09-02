@@ -36,10 +36,12 @@ a{color:#166d7d;text-decoration:none}a:hover{color:#1f96ab}
 .tl-label.done{color:#3b4a46;font-weight:500}
 </style>
 <style>
-input:focus,select:focus,textarea:focus{border-color:#166d7d;box-shadow:0 0 0 3px rgba(22,109,125,.1)}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(22,109,125,.1)}
 #btn-submit:hover,.btn-track:hover{background:#166d7d}
 #btn-submit:disabled,.btn-track:disabled{background:#a9b3ae;cursor:not-allowed}
 #st-refresh:hover{background:#dceaed}
+#share-wa:hover{background:#dceaed}
+#dup-view:hover{background:#166d7d}
 </style>
 </head>
 <body>
@@ -120,6 +122,16 @@ input:focus,select:focus,textarea:focus{border-color:#166d7d;box-shadow:0 0 0 3p
               <div id="err-type" style="display:none;font-size:11.5px;color:#c0483f;margin-top:6px">اختر نوع الطلب</div>
             </div>
           </div>
+          <div id="dup-box" style="display:none;flex-direction:column;gap:12px;background:#fcf7ea;border:1px solid #e8dab6;border-radius:10px;padding:13px 15px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8a6a1f;flex-shrink:0">!</span>
+              <div id="dup-text" style="font-size:12.5px;color:#7d6428;line-height:1.8"></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button type="button" id="dup-view" style="background:#12545f;border:none;border-radius:9px;padding:10px 16px;color:#fdfdfb;font-size:12.5px;font-weight:500;cursor:pointer">عرض حالته</button>
+              <button type="button" id="dup-skip" style="background:transparent;border:1px solid #dcded7;border-radius:9px;padding:10px 16px;color:#5f6d68;font-size:12.5px;cursor:pointer">أكمل بطلب جديد</button>
+            </div>
+          </div>
           <div>
             <label for="f-desc" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">تفاصيل المشكلة</label>
             <textarea id="f-desc" placeholder="اشرح مشكلتك باختصار..." style="width:100%;height:98px;resize:none;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;line-height:1.8;outline:none;transition:border-color .18s,box-shadow .18s"></textarea>
@@ -141,6 +153,10 @@ input:focus,select:focus,textarea:focus{border-color:#166d7d;box-shadow:0 0 0 3p
           <span id="copy-label">انسخ رقم الطلب</span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#166d7d">COPY</span>
         </div>
+        <a id="share-wa" href="#" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#e9f3f4;border:1px solid #c2dee2;border-radius:9px;padding:12px 15px;font-size:12.5px;color:#12545f;font-weight:500;margin-bottom:14px">
+          <span>أرسل الرقم لي في واتساب</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px">WA</span>
+        </a>
         <div id="st-block" style="display:none;text-align:right;margin:6px 0 20px;padding-top:20px;border-top:1px solid #e6e8e2">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
             <div style="display:flex;align-items:baseline;gap:9px">
@@ -221,7 +237,7 @@ input:focus,select:focus,textarea:focus{border-color:#166d7d;box-shadow:0 0 0 3p
   </div>
 
   <footer style="border-top:1px solid #dcded7;padding:24px 18px;text-align:center;font-size:11.5px;color:#6a7875;line-height:2">
-    قسم التدريب الإلكتروني ومصادر التدريب · الكلية التقنية بعرعر · <a href="https://t.me/ArarETCbot" target="_blank" rel="noopener" style="color:#166d7d">@ArarETCbot</a><br>
+    قسم التدريب الإلكتروني ومصادر التدريب · الكلية التقنية بعرعر · <a dir="ltr" href="https://t.me/ArarETCbot" target="_blank" rel="noopener" style="color:#166d7d;direction:ltr;unicode-bidi:isolate;display:inline-block">@ArarETCbot</a><br>
     إعداد وتنفيذ: م. فهد الفهيد
   </footer>
 </div>
@@ -418,7 +434,7 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
       row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid ' + (on ? '#c2dee2' : '#e2e4de') + ';background:' + (on ? '#e9f3f4' : '#fdfdfb') + ';border-radius:9px;cursor:pointer';
       row.innerHTML = '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:13px;letter-spacing:.06em;color:#16211f">' + short(t) + '</span>' +
         '<span style="font-size:11px;color:' + (on ? '#166d7d' : '#8a938e') + '">' + (on ? 'معروض' : 'عرض الحالة') + '</span>';
-      row.onclick = () => { selected = t; $('ticket-display').textContent = short(t); try { currentTicket = t; } catch (e) {} renderList(); loadStatus(t); };
+      row.onclick = () => { selected = t; $('ticket-display').textContent = short(t); try { currentTicket = t; } catch (e) {} paintShare(t); renderList(); loadStatus(t); };
       box.appendChild(row);
     });
   }
@@ -447,6 +463,11 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
       $('st-response').style.display = 'none';
     }
     $('st-updated').innerHTML = 'آخر تحديث <span style="font-family:\'IBM Plex Mono\',monospace">' + stamp() + '</span>';
+    if (json.ticket) {
+      const m = readMeta();
+      m[json.ticket] = { type: json.type || (m[json.ticket] || {}).type || '', status: json.status || '' };
+      writeMeta(m);
+    }
     $('st-block').style.display = 'block';
   }
 
@@ -515,6 +536,7 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
 
   const origSubmit = window.submitForm;
   window.submitForm = async function () {
+    const chosenType = ($('f-type') || {}).value || '';
     await origSubmit();
     let num = '';
     try { num = (currentTicket || '').trim(); } catch (e) {}
@@ -526,6 +548,10 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     if (num && num !== '—') {
       selected = num;
       $('ticket-display').textContent = short(num);
+      const m = readMeta();
+      m[num] = { type: chosenType, status: 'قيد الانتظار' };
+      writeMeta(m);
+      paintShare(num);
       renderList();
       loadStatus(num);
     }
@@ -536,6 +562,8 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     $('st-block').style.display = 'none';
     $('st-note').style.display = 'none';
     $('st-list-wrap').style.display = 'none';
+    const dup = $('dup-box');
+    if (dup) dup.style.display = 'none';
     origReset();
   };
 
@@ -555,11 +583,76 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
   paintOffHours();
   setInterval(paintOffHours, 60000);
 
+  const TKEY = 'etc_ticket_meta';
+  function readMeta() { try { return JSON.parse(localStorage.getItem(TKEY) || '{}') || {}; } catch (e) { return {}; } }
+  function writeMeta(m) { try { localStorage.setItem(TKEY, JSON.stringify(m)); } catch (e) {} }
+
+  const SITE = 'https://alfhaid.github.io/araretc-bot/etc.html';
+  function paintShare(num) {
+    const a = $('share-wa');
+    if (!a) return;
+    const msg = 'رقم طلب الدعم الفني: ' + short(num) + '\nمتابعة الطلب: ' + SITE;
+    a.href = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  }
+
+  // تحقق فوري أثناء الكتابة (لا يغيّر شروط validate الأصلية)
+  (function liveValidate() {
+    const name = $('f-name'), id = $('f-id'), type = $('f-type');
+    const ok = '#2c7a5c', bad = '#c0483f', base = '#d9dcd5';
+    const digits = v => (typeof toEnglishDigits === 'function' ? toEnglishDigits(v) : v).replace(/\D/g, '');
+    if (name) name.addEventListener('input', () => {
+      const v = name.value.trim();
+      $('err-name').style.display = 'none';
+      name.style.borderColor = v ? ok : base;
+    });
+    if (id) id.addEventListener('input', () => {
+      const raw = id.value;
+      const cleaned = raw.replace(/[^0-9٠-٩]/g, '');
+      const hadJunk = cleaned !== raw;
+      if (hadJunk) id.value = cleaned;
+      const d = digits(cleaned);
+      const valid = d.length === 9 && d.indexOf('44') === 0;
+      const wrong = hadJunk || (d.length >= 2 && d.indexOf('44') !== 0) || (d.length === 9 && !valid);
+      $('err-id').textContent = hadJunk ? 'رقم المتدرب أرقام فقط — ٩ أرقام تبدأ بـ 44' : 'رقم المتدرب يجب أن يكون 9 أرقام ويبدأ بـ 44';
+      $('err-id').style.display = wrong ? 'block' : 'none';
+      id.style.borderColor = !d.length ? (hadJunk ? bad : base) : valid ? ok : wrong ? bad : base;
+    });
+    if (type) type.addEventListener('change', () => {
+      $('err-type').style.display = 'none';
+      type.style.borderColor = type.value ? ok : base;
+      paintDup();
+    });
+  })();
+
+  // تنبيه الطلب المكرر: طلب مفتوح بالنوع نفسه في سجل الجهاز
+  const OPEN = t => t !== 'تم الحل' && t !== 'طلب خاص بقسم آخر';
+  function paintDup() {
+    const box = $('dup-box'), sel = $('f-type');
+    if (!box || !sel) return;
+    const meta = readMeta();
+    const hit = tickets.find(t => meta[t] && meta[t].type === sel.value && OPEN(meta[t].status));
+    if (!sel.value || !hit) { box.style.display = 'none'; return; }
+    $('dup-text').innerHTML = 'لديك طلب مفتوح من النوع نفسه، رقمه <strong style="font-family:\'IBM Plex Mono\',monospace;font-weight:500;color:#5f4a15">' + short(hit) + '</strong> وحالته «' + meta[hit].status + '». الأفضل متابعته بدل رفع طلب جديد.';
+    box.style.display = 'flex';
+    $('dup-view').onclick = () => {
+      selected = hit;
+      try { currentTicket = hit; } catch (e) {}
+      $('ticket-display').textContent = short(hit);
+      paintShare(hit);
+      $('form-card').style.display = 'none';
+      $('success-box').style.display = 'block';
+      renderList();
+      loadStatus(hit);
+    };
+    $('dup-skip').onclick = () => { box.style.display = 'none'; };
+  }
+
   tickets = read();
   if (tickets.length) {
     selected = tickets[0];
     try { currentTicket = selected; } catch (e) {}
     $('ticket-display').textContent = short(selected);
+    paintShare(selected);
     $('form-card').style.display = 'none';
     $('success-box').style.display = 'block';
     renderList();
