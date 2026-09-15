@@ -793,7 +793,7 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     const t = ($('f-type') || {}).value || '';
     if (t === EMAIL_TYPE) {
       const v = ($('f-email').value || '').trim();
-      return v ? 'البريد كما كتبه المتدرب: ' + v : '';
+      return v ? 'البريد : ' + v : '';
     }
     if (t === PHONE_TYPE) {
       const d = (typeof toEnglishDigits === 'function' ? toEnglishDigits($('f-phone').value) : $('f-phone').value).replace(/\D/g, '');
