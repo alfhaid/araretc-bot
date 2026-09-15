@@ -139,6 +139,16 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(22,109,125,.1)
               <button type="button" id="dup-skip" style="background:transparent;border:1px solid #dcded7;border-radius:9px;padding:10px 16px;color:#5f6d68;font-size:12.5px;cursor:pointer">أكمل بطلب جديد</button>
             </div>
           </div>
+          <div id="wrap-email" style="display:none">
+            <label for="f-email" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">بريدك الإلكتروني للدخول إلى المنصة كاملاً</label>
+            <input type="text" id="f-email" dir="ltr" style="width:100%;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;outline:none;text-align:left;direction:ltr;transition:border-color .18s,box-shadow .18s;-webkit-appearance:none;appearance:none">
+            <div id="err-email" style="display:none;font-size:11.5px;color:#c0483f;margin-top:6px">اكتب بريدك كما تكتبه عند الدخول</div>
+          </div>
+          <div id="wrap-phone" style="display:none">
+            <label for="f-phone" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">رقم جوالك المسجل في رايات</label>
+            <input type="text" id="f-phone" inputmode="numeric" maxlength="10" placeholder="05XXXXXXXX" style="width:100%;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;outline:none;transition:border-color .18s,box-shadow .18s;-webkit-appearance:none;appearance:none">
+            <div id="err-phone" style="display:none;font-size:11.5px;color:#c0483f;margin-top:6px">رقم الجوال يجب أن يكون ١٠ أرقام</div>
+          </div>
           <div>
             <label for="f-desc" style="display:block;font-size:11px;color:#3b4a46;margin-bottom:8px">تفاصيل المشكلة</label>
             <textarea id="f-desc" placeholder="اشرح مشكلتك باختصار..." data-required="1" style="width:100%;height:98px;resize:none;background:#f7f8f5;border:1px solid #d9dcd5;border-radius:8px;padding:13px 14px;color:#16211f;font-size:13.5px;line-height:1.8;outline:none;transition:border-color .18s,box-shadow .18s"></textarea>
@@ -272,8 +282,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby66yEgll65eHMhLGDVf
 let currentTicket = "";
 
 const placeholders = {
-  "مشكلة في الدخول للمنصة": "اشرح مشكلتك باختصار مع كتابة بريدك الإلكتروني الكامل ",
-  "تحديث رقم الجوال في المنصة": "اشرح مشكلتك باختصار مع كتابة رقم جوالك المسجل في رايات",
   "default": "اشرح مشكلتك باختصار..."
 };
 
@@ -656,6 +664,12 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     const chosenType = ($('f-type') || {}).value || '';
     const sidRaw = ($('f-id') || {}).value || '';
     writeSid((typeof toEnglishDigits === 'function' ? toEnglishDigits(sidRaw.trim()) : sidRaw.trim()).replace(/\D/g, ''));
+    const line = extraLine();
+    const desc = $('f-desc');
+    if (line && desc && desc.value.indexOf(line) === -1) {
+      const prev = desc.value.trim();
+      desc.value = line + (prev ? '\n' + prev : '');
+    }
     await origSubmit();
     let num = '';
     try { num = (currentTicket || '').trim(); } catch (e) {}
@@ -678,6 +692,8 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
 
   const origReset = window.resetForm;
   window.resetForm = function () {
+    ['f-email', 'f-phone'].forEach(id => { const el = $(id); if (el) { el.value = ''; el.style.borderColor = '#d9dcd5'; } });
+    paintExtra();
     $('st-block').style.display = 'none';
     $('st-note').style.display = 'none';
     $('st-list-wrap').style.display = 'none';
@@ -740,6 +756,52 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     return okAll;
   };
 
+  const EMAIL_TYPE = 'مشكلة في الدخول للمنصة';
+  const PHONE_TYPE = 'تحديث رقم الجوال في المنصة';
+
+  function paintExtra() {
+    const t = ($('f-type') || {}).value || '';
+    const we = $('wrap-email'), wp = $('wrap-phone');
+    if (we) we.style.display = t === EMAIL_TYPE ? 'block' : 'none';
+    if (wp) wp.style.display = t === PHONE_TYPE ? 'block' : 'none';
+    if (t !== EMAIL_TYPE && $('err-email')) $('err-email').style.display = 'none';
+    if (t !== PHONE_TYPE && $('err-phone')) $('err-phone').style.display = 'none';
+  }
+
+  const prevValidate = window.validate;
+  window.validate = function () {
+    let ok = prevValidate();
+    const t = ($('f-type') || {}).value || '';
+    if (t === EMAIL_TYPE) {
+      const v = ($('f-email').value || '').trim();
+      const bad = !v;
+      $('err-email').style.display = bad ? 'block' : 'none';
+      $('f-email').style.borderColor = bad ? '#c0483f' : '#2c7a5c';
+      if (bad) ok = false;
+    }
+    if (t === PHONE_TYPE) {
+      const d = (typeof toEnglishDigits === 'function' ? toEnglishDigits($('f-phone').value) : $('f-phone').value).replace(/\D/g, '');
+      const bad = !/^\d{10}$/.test(d);
+      $('err-phone').style.display = bad ? 'block' : 'none';
+      $('f-phone').style.borderColor = bad ? '#c0483f' : '#2c7a5c';
+      if (bad) ok = false;
+    }
+    return ok;
+  };
+
+  function extraLine() {
+    const t = ($('f-type') || {}).value || '';
+    if (t === EMAIL_TYPE) {
+      const v = ($('f-email').value || '').trim();
+      return v ? 'البريد كما كتبه المتدرب: ' + v : '';
+    }
+    if (t === PHONE_TYPE) {
+      const d = (typeof toEnglishDigits === 'function' ? toEnglishDigits($('f-phone').value) : $('f-phone').value).replace(/\D/g, '');
+      return d ? 'رقم الجوال المسجل في رايات: ' + d : '';
+    }
+    return '';
+  }
+
   // تحقق فوري أثناء الكتابة (لا يغيّر شروط validate الأصلية)
   (function liveValidate() {
     const name = $('f-name'), id = $('f-id'), type = $('f-type');
@@ -781,7 +843,22 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     if (type) type.addEventListener('change', () => {
       $('err-type').style.display = 'none';
       type.style.borderColor = type.value ? ok : base;
+      paintExtra();
       paintDup();
+    });
+    const em = $('f-email'), ph = $('f-phone');
+    if (em) em.addEventListener('input', () => {
+      const v = em.value.trim();
+      $('err-email').style.display = 'none';
+      em.style.borderColor = v ? ok : base;
+    });
+    if (ph) ph.addEventListener('input', () => {
+      const cleaned = ph.value.replace(/[^0-9٠-٩]/g, '');
+      if (cleaned !== ph.value) ph.value = cleaned;
+      const d = digits(cleaned);
+      const good = /^\d{10}$/.test(d);
+      $('err-phone').style.display = 'none';
+      ph.style.borderColor = !d ? base : good ? ok : base;
     });
   })();
 
@@ -808,6 +885,7 @@ document.getElementById('track-input').addEventListener('keypress', e => { if (e
     $('dup-skip').onclick = () => { box.style.display = 'none'; };
   }
 
+  paintExtra();
   wireNeeds('st', () => selected);
   wireNeeds('r', () => {
     const el = $('track-input');
